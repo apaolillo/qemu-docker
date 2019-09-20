@@ -1,0 +1,19 @@
+target remote tcp::1234
+
+define dispi
+display/i $pc
+end
+document dispi
+Display the current instruction
+Usage: dispi
+end
+
+alias -a reg = info registers
+
+dispi
+
+#break _start
+#break cpu_init_cp15
+#break lowlevel_init
+#b lowlevel_init.S:52
+#display /i *_main

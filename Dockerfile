@@ -1,9 +1,8 @@
 FROM ubuntu:18.04
 
-ARG QEMU_VERSION=4.1.0
-
 # Install required packages
 RUN apt-get update && apt-get install -y --no-install-recommends \
+        bc \
         binutils-arm-none-eabi \
         bison \
         bsdmainutils \
@@ -22,6 +21,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
         pkg-config \
         python \
         python3 \
+        python3-venv \
         telnet \
         tio \
         u-boot-tools \
@@ -38,7 +38,8 @@ RUN mkdir -p packages && cd packages && \
     dpkg -i gdb-arm-none-eabi_7.10-1ubuntu3+9_amd64.deb && \
     cd ..
 
-# Compile qemu from downloaded package
+# Compile QEMU from downloaded package
+ARG QEMU_VERSION=4.1.0
 WORKDIR /qemu-install
 RUN extractedDirName="qemu-${QEMU_VERSION}" && \
     qemuFileName="qemu-${QEMU_VERSION}.tar.xz" && \
@@ -61,6 +62,36 @@ RUN extractedDirName="qemu-${QEMU_VERSION}" && \
     make install
 ENV PATH="/opt/qemu/bin:${PATH}"
 
+# Configure python venv
+WORKDIR /python
+RUN python3 -m venv venv && \
+    ./venv/bin/pip3 install --upgrade pip && \
+    ./venv/bin/pip3 install --upgrade setuptools && \
+    ./venv/bin/pip3 install --upgrade gdbgui
+
+# Download U-Boot and compile it for imx7 board
+ARG UBOOT_VERSION=2019.07
+WORKDIR /u-boot
+RUN ubootName="u-boot-${UBOOT_VERSION}" && \
+    wget --quiet ftp://ftp.denx.de/pub/u-boot/${ubootName}.tar.bz2 && \
+    tar -xf ${ubootName}.tar.bz2 && \
+    cd ${ubootName} && \
+    make CROSS_COMPILE=arm-none-eabi- mx7dsabresd_config && \
+    make CROSS_COMPILE=arm-none-eabi- && \
+    arm-none-eabi-objdump -S u-boot > u-boot.S
+COPY run-uboot.sh .
+
 # Set workspace directory
 ARG WORKDIR=/workspace
 WORKDIR ${WORKDIR}
+
+# Copy source of the application
+COPY app ${WORKDIR}/app
+
+# Build the C hello world application on different targets
+RUN bash -x app/build.sh zybo a9
+RUN bash -x app/build.sh qemu-a7 a7
+RUN bash -x app/build.sh qemu-a9 a9
+
+COPY gdb.script ${WORKDIR}/
+COPY gdbgui.sh ${WORKDIR}/
