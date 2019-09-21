@@ -79,9 +79,9 @@ RUN ubootName="u-boot-${UBOOT_VERSION}" && \
 # TODO merge commands when clean
 WORKDIR /u-boot/u-boot-${UBOOT_VERSION}
 RUN git init && git add -A
-RUN sed -is "s/CONFIG_SYS_TEXT_BASE=0x87800000/CONFIG_SYS_TEXT_BASE=0x80010000/" configs/mx7dsabresd_defconfig && \
-    sed -is "s/(CONFIG_SYS_INIT_RAM_SIZE - GENERATED_GBL_DATA_SIZE)/(0x00010000 - GENERATED_GBL_DATA_SIZE)/" include/configs/mx7dsabresd.h && \
-    sed -is "s/(CONFIG_SYS_INIT_RAM_ADDR + CONFIG_SYS_INIT_SP_OFFSET)/(0x80000000 + CONFIG_SYS_INIT_SP_OFFSET)/" include/configs/mx7dsabresd.h
+RUN sed -i "s/CONFIG_SYS_TEXT_BASE=0x87800000/CONFIG_SYS_TEXT_BASE=0x80010000/" configs/mx7dsabresd_defconfig && \
+    sed -i "s/(CONFIG_SYS_INIT_RAM_SIZE - GENERATED_GBL_DATA_SIZE)/(0x00010000 - GENERATED_GBL_DATA_SIZE)/" include/configs/mx7dsabresd.h && \
+    sed -i "s/(CONFIG_SYS_INIT_RAM_ADDR + CONFIG_SYS_INIT_SP_OFFSET)/(0x80000000 + CONFIG_SYS_INIT_SP_OFFSET)/" include/configs/mx7dsabresd.h
 RUN make CROSS_COMPILE=arm-none-eabi- mx7dsabresd_config && \
     make CROSS_COMPILE=arm-none-eabi- && \
     arm-none-eabi-objdump -S u-boot > u-boot.S
@@ -95,9 +95,9 @@ WORKDIR ${WORKDIR}
 COPY app ${WORKDIR}/app
 
 # Build the C hello world application on different targets
-RUN bash -x app/build.sh zybo a9
-RUN bash -x app/build.sh qemu-a7 a7
-RUN bash -x app/build.sh qemu-a9 a9
+RUN ./app/build.sh zybo a9
+RUN ./app/build.sh qemu-a7 a7
+RUN ./app/build.sh qemu-a9 a9
 
 COPY gdb.script ${WORKDIR}/
 COPY gdbgui.sh ${WORKDIR}/
